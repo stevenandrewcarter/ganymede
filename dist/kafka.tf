@@ -5,11 +5,11 @@ variable "kafka_version" {
 resource "kubernetes_namespace" "kafka" {
   metadata {
     annotations = {
-      name = "kafka" 
+      name = "kafka"
     }
     labels = {
       "name" = "kafka"
-    }  
+    }
     name = "kafka"
   }
 }
@@ -38,16 +38,16 @@ resource "kubernetes_deployment" "zookeeper" {
       spec {
         container {
           image = "confluentinc/cp-zookeeper:${var.kafka_version}"
-          name = "zookeeper"
+          name  = "zookeeper"
           port {
             container_port = 2181
           }
           env {
-            name = "ZOOKEEPER_CLIENT_PORT"
+            name  = "ZOOKEEPER_CLIENT_PORT"
             value = "2181"
           }
           env {
-            name = "ZOOKEEPER_TICK_TIME"
+            name  = "ZOOKEEPER_TICK_TIME"
             value = "2000"
           }
         }
@@ -58,7 +58,7 @@ resource "kubernetes_deployment" "zookeeper" {
 
 resource "kubernetes_service" "zookeeper" {
   metadata {
-    name = "zookeeper"
+    name      = "zookeeper"
     namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   spec {
@@ -66,8 +66,8 @@ resource "kubernetes_service" "zookeeper" {
       app = kubernetes_deployment.zookeeper.metadata.0.labels.app
     }
     port {
-      protocol = "TCP"
-      port = 2181
+      protocol    = "TCP"
+      port        = 2181
       target_port = 2181
     }
     # port {
@@ -90,7 +90,7 @@ resource "kubernetes_service" "zookeeper" {
 
 resource "kubernetes_deployment" "broker" {
   depends_on = [
-    kubernetes_service.zookeeper]
+  kubernetes_service.zookeeper]
   metadata {
     name = "broker"
     labels = {
@@ -114,7 +114,7 @@ resource "kubernetes_deployment" "broker" {
       spec {
         container {
           image = "confluentinc/cp-server:${var.kafka_version}"
-          name = "broker"
+          name  = "broker"
           port {
             container_port = 9092
           }
@@ -122,75 +122,75 @@ resource "kubernetes_deployment" "broker" {
             container_port = 29092
           }
           env {
-            name = "KAFKA_BROKER_ID"
+            name  = "KAFKA_BROKER_ID"
             value = "1"
           }
           env {
-            name = "KAFKA_ZOOKEEPER_CONNECT"
+            name  = "KAFKA_ZOOKEEPER_CONNECT"
             value = "zookeeper:2181"
           }
           env {
-            name = "KAFKA_ADVERTISED_LISTENERS"
+            name  = "KAFKA_ADVERTISED_LISTENERS"
             value = "PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092"
           }
           env {
-            name = "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"
+            name  = "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"
             value = "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
           }
           env {
-            name = "KAFKA_METRIC_REPORTERS"
+            name  = "KAFKA_METRIC_REPORTERS"
             value = "io.confluent.metrics.reporter.ConfluentMetricsReporter"
           }
           env {
-            name = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR"
+            name  = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR"
             value = "1"
           }
           env {
-            name = "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS"
+            name  = "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS"
             value = "0"
           }
           env {
-            name = "KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR"
+            name  = "KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR"
             value = "1"
           }
           env {
-            name = "KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR"
+            name  = "KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR"
             value = "1"
           }
           env {
-            name = "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR"
+            name  = "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR"
             value = "1"
           }
           env {
-            name = "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR"
+            name  = "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR"
             value = "1"
           }
           env {
-            name = "KAFKA_JMX_PORT"
+            name  = "KAFKA_JMX_PORT"
             value = "9101"
           }
           env {
-            name = "KAFKA_JMX_HOSTNAME"
+            name  = "KAFKA_JMX_HOSTNAME"
             value = "localhost"
           }
           env {
-            name = "KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL"
+            name  = "KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL"
             value = "http://schema-registry:8081"
           }
           env {
-            name = "CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS"
+            name  = "CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS"
             value = "broker:29092"
           }
           env {
-            name = "CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS"
+            name  = "CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS"
             value = "1"
           }
           env {
-            name = "CONFLUENT_METRICS_ENABLE"
+            name  = "CONFLUENT_METRICS_ENABLE"
             value = "true"
           }
           env {
-            name = "CONFLUENT_SUPPORT_CUSTOMER_ID"
+            name  = "CONFLUENT_SUPPORT_CUSTOMER_ID"
             value = "anonymous"
           }
         }
@@ -201,7 +201,7 @@ resource "kubernetes_deployment" "broker" {
 
 resource "kubernetes_service" "broker" {
   metadata {
-    name = "broker"
+    name      = "broker"
     namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   spec {
@@ -209,15 +209,15 @@ resource "kubernetes_service" "broker" {
       app = kubernetes_deployment.broker.metadata.0.labels.app
     }
     port {
-      name = "broker-host"
-      protocol = "TCP"
-      port = 9092
+      name        = "broker-host"
+      protocol    = "TCP"
+      port        = 9092
       target_port = 9092
     }
     port {
-      name = "broker"
-      protocol = "TCP"
-      port = 29092
+      name        = "broker"
+      protocol    = "TCP"
+      port        = 29092
       target_port = 29092
     }
     type = "LoadBalancer"
