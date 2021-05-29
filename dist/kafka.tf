@@ -2,12 +2,25 @@ variable "kafka_version" {
   default = "6.1.1"
 }
 
+resource "kubernetes_namespace" "kafka" {
+  metadata {
+    annotations = {
+      name = "kafka" 
+    }
+    labels = {
+      "name" = "kafka"
+    }  
+    name = "kafka"
+  }
+}
+
 resource "kubernetes_deployment" "zookeeper" {
   metadata {
     name = "zookeeper"
     labels = {
       app = "zookeeper"
     }
+    namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   spec {
     replicas = 1
@@ -46,6 +59,7 @@ resource "kubernetes_deployment" "zookeeper" {
 resource "kubernetes_service" "zookeeper" {
   metadata {
     name = "zookeeper"
+    namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   spec {
     selector = {
@@ -82,6 +96,7 @@ resource "kubernetes_deployment" "broker" {
     labels = {
       app = "broker"
     }
+    namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   spec {
     replicas = 1
@@ -187,6 +202,7 @@ resource "kubernetes_deployment" "broker" {
 resource "kubernetes_service" "broker" {
   metadata {
     name = "broker"
+    namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   spec {
     selector = {
