@@ -208,520 +208,520 @@ resource "kubernetes_service" "broker" {
   }
 }
 
-resource "kubernetes_deployment" "schema-registry" {
-  depends_on = [
-    kubernetes_service.broker]
-  metadata {
-    name = "schema-registry"
-    labels = {
-      app = "schema-registry"
-    }
-  }
+# resource "kubernetes_deployment" "schema-registry" {
+#   depends_on = [
+#     kubernetes_service.broker]
+#   metadata {
+#     name = "schema-registry"
+#     labels = {
+#       app = "schema-registry"
+#     }
+#   }
 
-  spec {
-    replicas = 1
+#   spec {
+#     replicas = 1
 
-    selector {
-      match_labels = {
-        app = "schema-registry"
-      }
-    }
+#     selector {
+#       match_labels = {
+#         app = "schema-registry"
+#       }
+#     }
 
-    template {
-      metadata {
-        labels = {
-          app = "schema-registry"
-        }
-      }
+#     template {
+#       metadata {
+#         labels = {
+#           app = "schema-registry"
+#         }
+#       }
 
-      spec {
-        container {
-          image = "confluentinc/cp-schema-registry:${var.kafka_version}"
-          name = "schema-registry"
-          port {
-            container_port = 8081
-          }
-          env {
-            name = "SCHEMA_REGISTRY_HOST_NAME"
-            value = "schema-registry"
-          }
-          env {
-            name = "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS"
-            value = "broker:29092"
-          }
-          env {
-            name = "SCHEMA_REGISTRY_LISTENERS"
-            value = "http://0.0.0.0:8081"
-          }
-        }
-      }
-    }
-  }
-}
+#       spec {
+#         container {
+#           image = "confluentinc/cp-schema-registry:${var.kafka_version}"
+#           name = "schema-registry"
+#           port {
+#             container_port = 8081
+#           }
+#           env {
+#             name = "SCHEMA_REGISTRY_HOST_NAME"
+#             value = "schema-registry"
+#           }
+#           env {
+#             name = "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS"
+#             value = "broker:29092"
+#           }
+#           env {
+#             name = "SCHEMA_REGISTRY_LISTENERS"
+#             value = "http://0.0.0.0:8081"
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
-resource "kubernetes_service" "schema-registry" {
-  metadata {
-    name = "schema-registry"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.schema-registry.metadata.0.labels.app
-    }
-    port {
-      protocol = "TCP"
-      port = 8081
-      target_port = 8081
-    }
-    type = "LoadBalancer"
-  }
-}
+# resource "kubernetes_service" "schema-registry" {
+#   metadata {
+#     name = "schema-registry"
+#   }
+#   spec {
+#     selector = {
+#       app = kubernetes_deployment.schema-registry.metadata.0.labels.app
+#     }
+#     port {
+#       protocol = "TCP"
+#       port = 8081
+#       target_port = 8081
+#     }
+#     type = "LoadBalancer"
+#   }
+# }
 
-resource "kubernetes_deployment" "connect" {
-  depends_on = [
-    kubernetes_service.broker,
-    kubernetes_service.schema-registry]
-  metadata {
-    name = "connect"
-    labels = {
-      app = "connect"
-    }
-  }
+# resource "kubernetes_deployment" "connect" {
+#   depends_on = [
+#     kubernetes_service.broker,
+#     kubernetes_service.schema-registry]
+#   metadata {
+#     name = "connect"
+#     labels = {
+#       app = "connect"
+#     }
+#   }
 
-  spec {
-    replicas = 1
+#   spec {
+#     replicas = 1
 
-    selector {
-      match_labels = {
-        app = "connect"
-      }
-    }
+#     selector {
+#       match_labels = {
+#         app = "connect"
+#       }
+#     }
 
-    template {
-      metadata {
-        labels = {
-          app = "connect"
-        }
-      }
+#     template {
+#       metadata {
+#         labels = {
+#           app = "connect"
+#         }
+#       }
 
-      spec {
-        container {
-          image = "cnfldemos/cp-server-connect-datagen:0.4.0-${var.kafka_version}"
-          name = "connect"
-          port {
-            container_port = 8083
-          }
-          env {
-            name = "CONNECT_BOOTSTRAP_SERVERS"
-            value = "broker:29092"
-          }
-          env {
-            name = "CONNECT_REST_ADVERTISED_HOST_NAME"
-            value = "connect"
-          }
-          env {
-            name = "CONNECT_REST_PORT"
-            value = "8083"
-          }
-          env {
-            name = "CONNECT_GROUP_ID"
-            value = "compose-connect-group"
-          }
-          env {
-            name = "CONNECT_CONFIG_STORAGE_TOPIC"
-            value = "docker-connect-configs"
-          }
-          env {
-            name = "CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR"
-            value = "1"
-          }
-          env {
-            name = "CONNECT_OFFSET_FLUSH_INTERVAL_MS"
-            value = "10000"
-          }
-          env {
-            name = "CONNECT_OFFSET_STORAGE_TOPIC"
-            value = "docker-connect-offsets"
-          }
-          env {
-            name = "CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR"
-            value = "1"
-          }
-          env {
-            name = "CONNECT_STATUS_STORAGE_TOPIC"
-            value = "docker-connect-status"
-          }
-          env {
-            name = "CONNECT_STATUS_STORAGE_REPLICATION_FACTOR"
-            value = "1"
-          }
-          env {
-            name = "CONNECT_KEY_CONVERTER"
-            value = "org.apache.kafka.connect.storage.StringConverter"
-          }
-          env {
-            name = "CONNECT_VALUE_CONVERTER"
-            value = "io.confluent.connect.avro.AvroConverter"
-          }
-          env {
-            name = "CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL"
-            value = "http://schema-registry:8081"
-          }
-          env {
-            name = "CLASSPATH"
-            value = "/usr/share/java/monitoring-interceptors/monitoring-interceptors-6.0.1.jar"
-          }
-          env {
-            name = "CONNECT_PRODUCER_INTERCEPTOR_CLASSES"
-            value = "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
-          }
-          env {
-            name = "CONNECT_CONSUMER_INTERCEPTOR_CLASSES"
-            value = "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
-          }
-          env {
-            name = "CONNECT_PLUGIN_PATH"
-            value = "/usr/share/java,/usr/share/confluent-hub-components"
-          }
-          env {
-            name = "CONNECT_LOG4J_LOGGERS"
-            value = "org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR"
-          }
-        }
-      }
-    }
-  }
-}
+#       spec {
+#         container {
+#           image = "cnfldemos/cp-server-connect-datagen:0.4.0-${var.kafka_version}"
+#           name = "connect"
+#           port {
+#             container_port = 8083
+#           }
+#           env {
+#             name = "CONNECT_BOOTSTRAP_SERVERS"
+#             value = "broker:29092"
+#           }
+#           env {
+#             name = "CONNECT_REST_ADVERTISED_HOST_NAME"
+#             value = "connect"
+#           }
+#           env {
+#             name = "CONNECT_REST_PORT"
+#             value = "8083"
+#           }
+#           env {
+#             name = "CONNECT_GROUP_ID"
+#             value = "compose-connect-group"
+#           }
+#           env {
+#             name = "CONNECT_CONFIG_STORAGE_TOPIC"
+#             value = "docker-connect-configs"
+#           }
+#           env {
+#             name = "CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR"
+#             value = "1"
+#           }
+#           env {
+#             name = "CONNECT_OFFSET_FLUSH_INTERVAL_MS"
+#             value = "10000"
+#           }
+#           env {
+#             name = "CONNECT_OFFSET_STORAGE_TOPIC"
+#             value = "docker-connect-offsets"
+#           }
+#           env {
+#             name = "CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR"
+#             value = "1"
+#           }
+#           env {
+#             name = "CONNECT_STATUS_STORAGE_TOPIC"
+#             value = "docker-connect-status"
+#           }
+#           env {
+#             name = "CONNECT_STATUS_STORAGE_REPLICATION_FACTOR"
+#             value = "1"
+#           }
+#           env {
+#             name = "CONNECT_KEY_CONVERTER"
+#             value = "org.apache.kafka.connect.storage.StringConverter"
+#           }
+#           env {
+#             name = "CONNECT_VALUE_CONVERTER"
+#             value = "io.confluent.connect.avro.AvroConverter"
+#           }
+#           env {
+#             name = "CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL"
+#             value = "http://schema-registry:8081"
+#           }
+#           env {
+#             name = "CLASSPATH"
+#             value = "/usr/share/java/monitoring-interceptors/monitoring-interceptors-6.0.1.jar"
+#           }
+#           env {
+#             name = "CONNECT_PRODUCER_INTERCEPTOR_CLASSES"
+#             value = "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
+#           }
+#           env {
+#             name = "CONNECT_CONSUMER_INTERCEPTOR_CLASSES"
+#             value = "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
+#           }
+#           env {
+#             name = "CONNECT_PLUGIN_PATH"
+#             value = "/usr/share/java,/usr/share/confluent-hub-components"
+#           }
+#           env {
+#             name = "CONNECT_LOG4J_LOGGERS"
+#             value = "org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR"
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
-resource "kubernetes_service" "connect" {
-  metadata {
-    name = "connect"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.connect.metadata.0.labels.app
-    }
-    port {
-      protocol = "TCP"
-      port = 8083
-      target_port = 8083
-    }
-    type = "LoadBalancer"
-  }
-}
+# resource "kubernetes_service" "connect" {
+#   metadata {
+#     name = "connect"
+#   }
+#   spec {
+#     selector = {
+#       app = kubernetes_deployment.connect.metadata.0.labels.app
+#     }
+#     port {
+#       protocol = "TCP"
+#       port = 8083
+#       target_port = 8083
+#     }
+#     type = "LoadBalancer"
+#   }
+# }
 
-resource "kubernetes_deployment" "control-center" {
-  depends_on = [
-    kubernetes_service.broker,
-    kubernetes_service.schema-registry,
-    kubernetes_service.connect,
-    kubernetes_service.ksqldb-server
-  ]
-  metadata {
-    name = "control-center"
-    labels = {
-      app = "control-center"
-    }
-  }
+# resource "kubernetes_deployment" "control-center" {
+#   depends_on = [
+#     kubernetes_service.broker,
+#     kubernetes_service.schema-registry,
+#     kubernetes_service.connect,
+#     kubernetes_service.ksqldb-server
+#   ]
+#   metadata {
+#     name = "control-center"
+#     labels = {
+#       app = "control-center"
+#     }
+#   }
 
-  spec {
-    replicas = 1
+#   spec {
+#     replicas = 1
 
-    selector {
-      match_labels = {
-        app = "control-center"
-      }
-    }
+#     selector {
+#       match_labels = {
+#         app = "control-center"
+#       }
+#     }
 
-    template {
-      metadata {
-        labels = {
-          app = "control-center"
-        }
-      }
+#     template {
+#       metadata {
+#         labels = {
+#           app = "control-center"
+#         }
+#       }
 
-      spec {
-        container {
-          image = "confluentinc/cp-enterprise-control-center:${var.kafka_version}"
-          name = "control-center"
-          port {
-            container_port = 9021
-          }
-          env {
-            name = "CONTROL_CENTER_BOOTSTRAP_SERVERS"
-            value = "broker:29092"
-          }
-          env {
-            name = "CONTROL_CENTER_CONNECT_CLUSTER"
-            value = "connect:8083"
-          }
-          env {
-            name = "CONTROL_CENTER_KSQL_KSQLDB1_URL"
-            value = "http://ksqldb-server:8088"
-          }
-          env {
-            name = "CONTROL_CENTER_KSQL_KSQLDB1_ADVERTISED_URL"
-            value = "http://localhost:8088"
-          }
-          env {
-            name = "CONTROL_CENTER_SCHEMA_REGISTRY_URL"
-            value = "http://schema-registry:8081"
-          }
-          env {
-            name = "CONTROL_CENTER_REPLICATION_FACTOR"
-            value = "1"
-          }
-          env {
-            name = "CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS"
-            value = "1"
-          }
-          env {
-            name = "CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS"
-            value = "1"
-          }
-          env {
-            name = "CONFLUENT_METRICS_TOPIC_REPLICATION"
-            value = "1"
-          }
-          env {
-            name = "PORT"
-            value = "9021"
-          }
-        }
-      }
-    }
-  }
-}
+#       spec {
+#         container {
+#           image = "confluentinc/cp-enterprise-control-center:${var.kafka_version}"
+#           name = "control-center"
+#           port {
+#             container_port = 9021
+#           }
+#           env {
+#             name = "CONTROL_CENTER_BOOTSTRAP_SERVERS"
+#             value = "broker:29092"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_CONNECT_CLUSTER"
+#             value = "connect:8083"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_KSQL_KSQLDB1_URL"
+#             value = "http://ksqldb-server:8088"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_KSQL_KSQLDB1_ADVERTISED_URL"
+#             value = "http://localhost:8088"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_SCHEMA_REGISTRY_URL"
+#             value = "http://schema-registry:8081"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_REPLICATION_FACTOR"
+#             value = "1"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS"
+#             value = "1"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS"
+#             value = "1"
+#           }
+#           env {
+#             name = "CONFLUENT_METRICS_TOPIC_REPLICATION"
+#             value = "1"
+#           }
+#           env {
+#             name = "PORT"
+#             value = "9021"
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
-resource "kubernetes_service" "control-center" {
-  metadata {
-    name = "control-center"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.control-center.metadata.0.labels.app
-    }
-    port {
-      protocol = "TCP"
-      port = 9021
-      target_port = 9021
-    }
-    type = "LoadBalancer"
-  }
-}
+# resource "kubernetes_service" "control-center" {
+#   metadata {
+#     name = "control-center"
+#   }
+#   spec {
+#     selector = {
+#       app = kubernetes_deployment.control-center.metadata.0.labels.app
+#     }
+#     port {
+#       protocol = "TCP"
+#       port = 9021
+#       target_port = 9021
+#     }
+#     type = "LoadBalancer"
+#   }
+# }
 
-resource "kubernetes_deployment" "ksqldb-server" {
-  depends_on = [
-    kubernetes_service.broker,
-    kubernetes_service.connect
-  ]
-  metadata {
-    name = "ksqldb-server"
-    labels = {
-      app = "ksqldb-server"
-    }
-  }
+# resource "kubernetes_deployment" "ksqldb-server" {
+#   depends_on = [
+#     kubernetes_service.broker,
+#     kubernetes_service.connect
+#   ]
+#   metadata {
+#     name = "ksqldb-server"
+#     labels = {
+#       app = "ksqldb-server"
+#     }
+#   }
 
-  spec {
-    replicas = 1
+#   spec {
+#     replicas = 1
 
-    selector {
-      match_labels = {
-        app = "ksqldb-server"
-      }
-    }
+#     selector {
+#       match_labels = {
+#         app = "ksqldb-server"
+#       }
+#     }
 
-    template {
-      metadata {
-        labels = {
-          app = "ksqldb-server"
-        }
-      }
+#     template {
+#       metadata {
+#         labels = {
+#           app = "ksqldb-server"
+#         }
+#       }
 
-      spec {
-        container {
-          image = "confluentinc/cp-ksqldb-server:${var.kafka_version}"
-          name = "ksqldb-server"
-          port {
-            container_port = 8088
-          }
-          env {
-            name = "KSQL_CONFIG_DIR"
-            value = "/etc/ksql"
-          }
-          env {
-            name = "KSQL_BOOTSTRAP_SERVERS"
-            value = "broker:29092"
-          }
-          env {
-            name = "KSQL_HOST_NAME"
-            value = "ksqldb-server"
-          }
-          env {
-            name = "KSQL_LISTENERS"
-            value = "http://0.0.0.0:8088"
-          }
-          env {
-            name = "KSQL_KSQL_SCHEMA_REGISTRY_URL"
-            value = "http://schema-registry:8081"
-          }
-          env {
-            name = "KSQL_PRODUCER_INTERCEPTOR_CLASSES"
-            value = "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
-          }
-          env {
-            name = "KSQL_CONSUMER_INTERCEPTOR_CLASSES"
-            value = "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
-          }
-          env {
-            name = "KSQL_KSQL_CONNECT_URL"
-            value = "http://connect:8083"
-          }
-          env {
-            name = "KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR"
-            value = "1"
-          }
-          env {
-            name = "KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE"
-            value = "true"
-          }
-          env {
-            name = "KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE"
-            value = "true"
-          }
-        }
-        container {
-          image = "confluentinc/cp-ksqldb-cli:${var.kafka_version}"
-          name = "ksqldb-cli"
-          command = [
-            "/bin/sh"]
-          tty = true
-        }
-        # container {
-        #   image = "confluentinc/ksqldb-examples:6.0.1"
-        #   name  = "ksql-datagen"
-        #   command = [<<EOT
-        #               bash -c 'echo Waiting for Kafka to be ready... && \
-        #                cub kafka-ready -b broker:29092 1 40 && \
-        #                echo Waiting for Confluent Schema Registry to be ready... && \
-        #                cub sr-ready schema-registry 8081 40 && \
-        #                echo Waiting a few seconds for topic creation to finish... && \
-        #                sleep 11 && \
-        #                tail -f /dev/null'
-        #               EOT
-        #   ]
-        #   env {
-        #     name  = "KSQL_CONFIG_DIR"
-        #     value = "/etc/ksql"
-        #   }
-        #   env {
-        #     name  = "STREAMS_BOOTSTRAP_SERVERS"
-        #     value = "broker:29092"
-        #   }
-        #   env {
-        #     name  = "STREAMS_SCHEMA_REGISTRY_HOST"
-        #     value = "schema-registry"
-        #   }
-        #   env {
-        #     name  = "STREAMS_SCHEMA_REGISTRY_PORT"
-        #     value = "8081"
-        #   }
-        # }
-      }
-    }
-  }
-}
+#       spec {
+#         container {
+#           image = "confluentinc/cp-ksqldb-server:${var.kafka_version}"
+#           name = "ksqldb-server"
+#           port {
+#             container_port = 8088
+#           }
+#           env {
+#             name = "KSQL_CONFIG_DIR"
+#             value = "/etc/ksql"
+#           }
+#           env {
+#             name = "KSQL_BOOTSTRAP_SERVERS"
+#             value = "broker:29092"
+#           }
+#           env {
+#             name = "KSQL_HOST_NAME"
+#             value = "ksqldb-server"
+#           }
+#           env {
+#             name = "KSQL_LISTENERS"
+#             value = "http://0.0.0.0:8088"
+#           }
+#           env {
+#             name = "KSQL_KSQL_SCHEMA_REGISTRY_URL"
+#             value = "http://schema-registry:8081"
+#           }
+#           env {
+#             name = "KSQL_PRODUCER_INTERCEPTOR_CLASSES"
+#             value = "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
+#           }
+#           env {
+#             name = "KSQL_CONSUMER_INTERCEPTOR_CLASSES"
+#             value = "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
+#           }
+#           env {
+#             name = "KSQL_KSQL_CONNECT_URL"
+#             value = "http://connect:8083"
+#           }
+#           env {
+#             name = "KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR"
+#             value = "1"
+#           }
+#           env {
+#             name = "KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE"
+#             value = "true"
+#           }
+#           env {
+#             name = "KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE"
+#             value = "true"
+#           }
+#         }
+#         container {
+#           image = "confluentinc/cp-ksqldb-cli:${var.kafka_version}"
+#           name = "ksqldb-cli"
+#           command = [
+#             "/bin/sh"]
+#           tty = true
+#         }
+#         # container {
+#         #   image = "confluentinc/ksqldb-examples:6.0.1"
+#         #   name  = "ksql-datagen"
+#         #   command = [<<EOT
+#         #               bash -c 'echo Waiting for Kafka to be ready... && \
+#         #                cub kafka-ready -b broker:29092 1 40 && \
+#         #                echo Waiting for Confluent Schema Registry to be ready... && \
+#         #                cub sr-ready schema-registry 8081 40 && \
+#         #                echo Waiting a few seconds for topic creation to finish... && \
+#         #                sleep 11 && \
+#         #                tail -f /dev/null'
+#         #               EOT
+#         #   ]
+#         #   env {
+#         #     name  = "KSQL_CONFIG_DIR"
+#         #     value = "/etc/ksql"
+#         #   }
+#         #   env {
+#         #     name  = "STREAMS_BOOTSTRAP_SERVERS"
+#         #     value = "broker:29092"
+#         #   }
+#         #   env {
+#         #     name  = "STREAMS_SCHEMA_REGISTRY_HOST"
+#         #     value = "schema-registry"
+#         #   }
+#         #   env {
+#         #     name  = "STREAMS_SCHEMA_REGISTRY_PORT"
+#         #     value = "8081"
+#         #   }
+#         # }
+#       }
+#     }
+#   }
+# }
 
-resource "kubernetes_service" "ksqldb-server" {
-  metadata {
-    name = "ksqldb-server"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.ksqldb-server.metadata.0.labels.app
-    }
-    port {
-      protocol = "TCP"
-      port = 8088
-      target_port = 8088
-    }
-    type = "LoadBalancer"
-  }
-}
+# resource "kubernetes_service" "ksqldb-server" {
+#   metadata {
+#     name = "ksqldb-server"
+#   }
+#   spec {
+#     selector = {
+#       app = kubernetes_deployment.ksqldb-server.metadata.0.labels.app
+#     }
+#     port {
+#       protocol = "TCP"
+#       port = 8088
+#       target_port = 8088
+#     }
+#     type = "LoadBalancer"
+#   }
+# }
 
-resource "kubernetes_deployment" "rest-proxy" {
-  depends_on = [
-    kubernetes_service.broker,
-    kubernetes_service.schema-registry
-  ]
-  metadata {
-    name = "rest-proxy"
-    labels = {
-      app = "rest-proxy"
-    }
-  }
+# resource "kubernetes_deployment" "rest-proxy" {
+#   depends_on = [
+#     kubernetes_service.broker,
+#     kubernetes_service.schema-registry
+#   ]
+#   metadata {
+#     name = "rest-proxy"
+#     labels = {
+#       app = "rest-proxy"
+#     }
+#   }
 
-  spec {
-    replicas = 1
+#   spec {
+#     replicas = 1
 
-    selector {
-      match_labels = {
-        app = "rest-proxy"
-      }
-    }
+#     selector {
+#       match_labels = {
+#         app = "rest-proxy"
+#       }
+#     }
 
-    template {
-      metadata {
-        labels = {
-          app = "rest-proxy"
-        }
-      }
+#     template {
+#       metadata {
+#         labels = {
+#           app = "rest-proxy"
+#         }
+#       }
 
-      spec {
-        container {
-          image = "confluentinc/cp-kafka-rest:${var.kafka_version}"
-          name = "rest-proxy"
-          port {
-            container_port = 8082
-          }
-          env {
-            name = "KAFKA_REST_HOST_NAME"
-            value = "rest-proxy"
-          }
-          env {
-            name = "KAFKA_REST_BOOTSTRAP_SERVERS"
-            value = "broker:29092"
-          }
-          env {
-            name = "KAFKA_REST_LISTENERS"
-            value = "http://0.0.0.0:8082"
-          }
-          env {
-            name = "KAFKA_REST_SCHEMA_REGISTRY_URL"
-            value = "http://schema-registry:8081"
-          }
-          env {
-            name = "CONTROL_CENTER_SCHEMA_REGISTRY_URL"
-            value = "http://schema-registry:8081"
-          }
-        }
-      }
-    }
-  }
-}
+#       spec {
+#         container {
+#           image = "confluentinc/cp-kafka-rest:${var.kafka_version}"
+#           name = "rest-proxy"
+#           port {
+#             container_port = 8082
+#           }
+#           env {
+#             name = "KAFKA_REST_HOST_NAME"
+#             value = "rest-proxy"
+#           }
+#           env {
+#             name = "KAFKA_REST_BOOTSTRAP_SERVERS"
+#             value = "broker:29092"
+#           }
+#           env {
+#             name = "KAFKA_REST_LISTENERS"
+#             value = "http://0.0.0.0:8082"
+#           }
+#           env {
+#             name = "KAFKA_REST_SCHEMA_REGISTRY_URL"
+#             value = "http://schema-registry:8081"
+#           }
+#           env {
+#             name = "CONTROL_CENTER_SCHEMA_REGISTRY_URL"
+#             value = "http://schema-registry:8081"
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
 
-resource "kubernetes_service" "rest-proxy" {
-  metadata {
-    name = "rest-proxy"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.rest-proxy.metadata.0.labels.app
-    }
-    port {
-      protocol = "TCP"
-      port = 8082
-      target_port = 8082
-    }
-    type = "LoadBalancer"
-  }
-}
+# resource "kubernetes_service" "rest-proxy" {
+#   metadata {
+#     name = "rest-proxy"
+#   }
+#   spec {
+#     selector = {
+#       app = kubernetes_deployment.rest-proxy.metadata.0.labels.app
+#     }
+#     port {
+#       protocol = "TCP"
+#       port = 8082
+#       target_port = 8082
+#     }
+#     type = "LoadBalancer"
+#   }
+# }
