@@ -1,7 +1,15 @@
+########################################################################################################################
+# Kafka
+# =====
+# Configure and deploy confluent Kafka / Zookeeper to the k8s cluster.
+#----------------------------------------------------------------------------------------------------------------------#
+
 variable "kafka_version" {
+  type = string
   default = "6.1.1"
 }
 
+#----------------------------------------------------------------------------------------------------------------------#
 resource "kubernetes_namespace" "kafka" {
   metadata {
     annotations = {
@@ -14,6 +22,22 @@ resource "kubernetes_namespace" "kafka" {
   }
 }
 
+#----------------------------------------------------------------------------------------------------------------------#
+# Config map to hold the JMX extensions for Kafka to provide Prometheus metrics
+resource "kubernetes_config_map" "kafka" {
+  metadata {
+    name      = "kafka"
+    namespace = kubernetes_namespace.kafka.metadata[0].name
+  }
+  data = {
+    "kafka_broker.yml" = "${file("${path.module}/files/jmx_kafka_broker.yml")}"
+  }
+  binary_data = {
+    "jmx_prometheus_javaagent-0.15.0.jar" = "${filebase64("${path.module}/files/jmx_prometheus_javaagent-0.15.0.jar")}"
+  }
+}
+
+#----------------------------------------------------------------------------------------------------------------------#
 resource "kubernetes_deployment" "zookeeper" {
   metadata {
     name = "zookeeper"
@@ -114,12 +138,15 @@ resource "kubernetes_deployment" "broker" {
       spec {
         container {
           image = "confluentinc/cp-server:${var.kafka_version}"
-          name  = "broker"
+          name  = "broker"          
           port {
             container_port = 9092
           }
           port {
             container_port = 29092
+          }
+          port {
+            container_port = 9405
           }
           env {
             name  = "KAFKA_BROKER_ID"
@@ -136,10 +163,6 @@ resource "kubernetes_deployment" "broker" {
           env {
             name  = "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"
             value = "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-          }
-          env {
-            name  = "KAFKA_METRIC_REPORTERS"
-            value = "io.confluent.metrics.reporter.ConfluentMetricsReporter"
           }
           env {
             name  = "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR"
@@ -166,32 +189,27 @@ resource "kubernetes_deployment" "broker" {
             value = "1"
           }
           env {
-            name  = "KAFKA_JMX_PORT"
-            value = "9101"
+            name = "KAFKA_OPTS"
+            value = "-javaagent:/opt/prometheus/jmx_prometheus_javaagent-0.15.0.jar=9405:/opt/prometheus/kafka_broker.yml"
           }
-          env {
-            name  = "KAFKA_JMX_HOSTNAME"
-            value = "localhost"
+          volume_mount {
+            name = "config"
+            mount_path = "/opt/prometheus"
+            read_only = true
           }
-          env {
-            name  = "KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL"
-            value = "http://schema-registry:8081"
-          }
-          env {
-            name  = "CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS"
-            value = "broker:29092"
-          }
-          env {
-            name  = "CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS"
-            value = "1"
-          }
-          env {
-            name  = "CONFLUENT_METRICS_ENABLE"
-            value = "true"
-          }
-          env {
-            name  = "CONFLUENT_SUPPORT_CUSTOMER_ID"
-            value = "anonymous"
+        }
+        volume {
+          name = "config"
+          config_map {
+            name = kubernetes_config_map.kafka.metadata[0].name
+            items {
+              key = "kafka_broker.yml"
+              path = "kafka_broker.yml"
+            }
+            items {
+              key = "jmx_prometheus_javaagent-0.15.0.jar"
+              path = "jmx_prometheus_javaagent-0.15.0.jar"
+            }
           }
         }
       }
@@ -219,6 +237,12 @@ resource "kubernetes_service" "broker" {
       protocol    = "TCP"
       port        = 29092
       target_port = 29092
+    }
+    port {
+      name        = "prometheus"
+      protocol    = "TCP"
+      port        = 9405
+      target_port = 9405
     }
     type = "LoadBalancer"
   }
