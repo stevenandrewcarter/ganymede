@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 variable "kafka_version" {
-  type = string
+  type    = string
   default = "6.1.1"
 }
 
@@ -30,10 +30,10 @@ resource "kubernetes_config_map" "kafka" {
     namespace = kubernetes_namespace.kafka.metadata[0].name
   }
   data = {
-    "kafka_broker.yml" = "${file("${path.module}/files/jmx_kafka_broker.yml")}"
+    "kafka_broker.yml" = "${file("${path.module}/files/kafka/jmx_kafka_broker.yml")}"
   }
   binary_data = {
-    "jmx_prometheus_javaagent-0.15.0.jar" = "${filebase64("${path.module}/files/jmx_prometheus_javaagent-0.15.0.jar")}"
+    "jmx_prometheus_javaagent-0.15.0.jar" = "${filebase64("${path.module}/files/kafka/jmx_prometheus_javaagent-0.15.0.jar")}"
   }
 }
 
@@ -138,7 +138,7 @@ resource "kubernetes_deployment" "broker" {
       spec {
         container {
           image = "confluentinc/cp-server:${var.kafka_version}"
-          name  = "broker"          
+          name  = "broker"
           port {
             container_port = 9092
           }
@@ -189,13 +189,13 @@ resource "kubernetes_deployment" "broker" {
             value = "1"
           }
           env {
-            name = "KAFKA_OPTS"
+            name  = "KAFKA_OPTS"
             value = "-javaagent:/opt/prometheus/jmx_prometheus_javaagent-0.15.0.jar=9405:/opt/prometheus/kafka_broker.yml"
           }
           volume_mount {
-            name = "config"
+            name       = "config"
             mount_path = "/opt/prometheus"
-            read_only = true
+            read_only  = true
           }
         }
         volume {
@@ -203,11 +203,11 @@ resource "kubernetes_deployment" "broker" {
           config_map {
             name = kubernetes_config_map.kafka.metadata[0].name
             items {
-              key = "kafka_broker.yml"
+              key  = "kafka_broker.yml"
               path = "kafka_broker.yml"
             }
             items {
-              key = "jmx_prometheus_javaagent-0.15.0.jar"
+              key  = "jmx_prometheus_javaagent-0.15.0.jar"
               path = "jmx_prometheus_javaagent-0.15.0.jar"
             }
           }

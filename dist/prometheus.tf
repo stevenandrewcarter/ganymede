@@ -73,7 +73,7 @@ resource "kubernetes_config_map" "prometheus" {
     namespace = kubernetes_namespace.prometheus.metadata[0].name
   }
   data = {
-    "prometheus.yml" = "${file("${path.module}/files/prometheus.yml")}"
+    "prometheus.yml" = "${file("${path.module}/files/prometheus/prometheus.yml")}"
   }
 }
 
