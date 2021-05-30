@@ -29,6 +29,8 @@ resource "kubernetes_config_map" "grafana" {
     "producer.json"                 = "${file("${path.module}/files/grafana/dashboards/kafka/producer.json")}"
     "schema-registry-overview.json" = "${file("${path.module}/files/grafana/dashboards/kafka/schema-registry-overview.json")}"
     "zookeeper-overview.json"       = "${file("${path.module}/files/grafana/dashboards/kafka/zookeeper-overview.json")}"
+
+    "kubernetes-cluster-monitoring.json" = "${file("${path.module}/files/grafana/dashboards/kubernetes/kubernetes-cluster-monitoring.json")}"
   }
 }
 
@@ -119,6 +121,10 @@ resource "kubernetes_deployment" "grafana" {
               key  = "zookeeper-overview.json"
               path = "dashboards/kafka/zookeeper-overview.json"
             }
+            items {
+              key  = "kubernetes-cluster-monitoring.json"
+              path = "dashboards/kubernetes/kubernetes-cluster-monitoring.json"
+            }            
           }
         }
       }
