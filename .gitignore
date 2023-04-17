@@ -30,4 +30,6 @@ override.tf.json
 
 # Ignore vendored files
 vendor
+.venv
+*.egg-info
 
